@@ -124,8 +124,8 @@ Installing agents should inspect Bookforge compatibility and its current upstrea
 Inspect/preview what Hermes will install, then install the skill:
 
 ```bash
-hermes skills inspect Gyu-bot/hermes-deep-research
-hermes skills install Gyu-bot/hermes-deep-research
+hermes skills inspect https://raw.githubusercontent.com/Gyu-bot/hermes-deep-research/main/SKILL.md
+hermes skills install https://raw.githubusercontent.com/Gyu-bot/hermes-deep-research/main/SKILL.md
 ```
 
 Manual HTTPS fallback:

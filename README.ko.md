@@ -124,8 +124,8 @@ hermes-deep-research/
 먼저 `inspect`로 Hermes가 설치할 내용을 미리 확인한 뒤 설치합니다.
 
 ```bash
-hermes skills inspect Gyu-bot/hermes-deep-research
-hermes skills install Gyu-bot/hermes-deep-research
+hermes skills inspect https://raw.githubusercontent.com/Gyu-bot/hermes-deep-research/main/SKILL.md
+hermes skills install https://raw.githubusercontent.com/Gyu-bot/hermes-deep-research/main/SKILL.md
 ```
 
 HTTPS 수동 클론 대안:
