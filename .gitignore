@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+
+# Local environments
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+._*
+
+# Generated research and document runs
+/runs/
+/research-runs/
+/reports/
+/artifacts/
+/bookforge/
+/state.json
+/sources.json
+/notes/
+/report.md
+/report.*.md
+
+# Browser and test output
+/browser-profiles/
+/.browser/
+/.browser-profile/
+/browser-profile/
+/browser_profile/
+/browser_profiles/
+/chrome-profile/
+/playwright/.auth/
+/test-results/
+/playwright-report/
+/blob-report/
+
+# Temporary and local QA artifacts
+*.tmp
+*.temp
+*~
+/.tmp/
+/tmp/
+/.qa/
+/.qa-artifacts/
+/qa-artifacts/
