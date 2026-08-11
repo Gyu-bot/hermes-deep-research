@@ -2,134 +2,122 @@
 
 # Hermes Deep Research
 
-Hermes Deep Research is a stateful deep-research protocol for Hermes. It is not a faster search shortcut: it turns a research brief into bounded research axes and logical waves, reviews original pages, tests counterevidence, checkpoints progress to disk, and produces a detailed Markdown synthesis with a separate source ledger.
+Hermes Deep Research is not a shortcut for finding one search result. It helps Hermes define a research question, investigate it in several stages, check original pages and disagreement, save progress, and write a sourced Markdown report. It is for questions that need more than a quick lookup.
 
-This repository is a Hermes-only Agent Skill. Its base workflow uses standard Hermes capabilities:
+The base skill uses standard Hermes tools. Insane Search is not required. A document or PDF is a separate, optional output and is created only when the user asks for it explicitly.
 
-- `delegate_task` for bounded, live parallel research lanes;
-- standard web discovery, extraction, and browser tools;
-- file and terminal tools for checkpoints and validation;
-- Hermes cron plus disk checkpoints for bounded unattended work.
+## How a research run works
 
-No LazyCodex, Codex CLI, private plugin, custom search fork, external research API, daemon, supervisor, or renderer is required. **Insane Search is not a dependency.** The default deliverable is `report.md` together with `sources.json`, lane notes, and run state.
+1. **Clarify the question.** If the request is unclear, Hermes asks up to three questions, and only when the answers would change the research. It may ask about:
+   - the goal and how the result will be used;
+   - scope, exclusions, and how current the information must be;
+   - topics that must be covered and what a useful result must achieve;
+   - whether the output is a report for a reader or an internal memo for another task;
+   - whether the user explicitly requested a final document or PDF.
 
-## Why this is different
+   If the request already includes enough information, Hermes starts without asking the same questions again.
+2. **Split the question into a few parts.** Each part has a clear question to answer. Together, the parts cover the user's goal.
+3. **Research in waves.** A wave is one stage of the research, not one search or tool call. The first stage looks broadly. The second checks original pages and freshness, whether several sources point back to the same material, and whether there is evidence that disagrees. The third examines conflicts and real-world exceptions. The fourth closes remaining gaps. `quick` performs all of these checks within one wave. `exhaustive` may add more waves, but only when they are useful.
+4. **Save progress after each stage.** Hermes keeps useful notes, sources, limitations, and the next steps in files.
+5. **Decide when to stop.** Hermes stops when the required parts are covered and new searches mostly repeat what is already known. If important gaps remain when the planning limits are reached, it still writes the useful result and marks it `partial`.
+6. **Write the report.** The normal result is a detailed `report.md` with a separate `sources.json` source list. Hermes creates a document or PDF only when the user explicitly requested one.
 
-| Approach | Typical behavior |
+## How it compares
+
+| Approach | What it does |
 | --- | --- |
-| Ordinary search | Runs a query and retrieves results or a page. It does not maintain a research plan or reconcile a body of evidence. |
-| One-shot research or summarization | Searches and summarizes in one pass, with limited durable state, follow-up, or explicit conflict handling. |
-| Hermes Deep Research | Maintains an evolving brief by checkpointing the brief and wave history, advances through logical waves, reads original pages, deduplicates source families, seeks counterevidence, analyzes conflicts, separates worker collection from parent integration, and finishes with a detailed synthesis marked `completed` or `partial`. |
+| Ordinary search | Finds a result or page. |
+| One-pass research or summarization | Searches and summarizes once. |
+| Hermes Deep Research | Clarifies the question, works in stages, checks original pages and disagreement, saves state, and can continue later from saved files. |
 
-The protocol treats result counts as diagnostics, not proof. It asks whether mandatory axes are adequately covered, whether important claims survived countersearch, whether apparently independent sources share an origin or dataset, and whether another search is still likely to change the answer.
+The number of searches or sources is not a completion rule. What matters is whether the report covers the question, explains disagreement, and states what is still uncertain.
 
-## How the protocol works
+## Who does what
 
-### Parent and worker ownership
+The main Hermes agent plans the work and combines the findings. It owns the saved files, reads important original pages, decides whether the research is complete or partial, and writes the final report.
 
-The parent is the sole orchestrator and writer. It defines the brief, axes, modes, budgets, and lane boundaries; owns all run files; verifies consequential, disputed, and directly quoted sources against original pages; integrates notes; resolves conflicts; checkpoints state; and writes the report.
+Helper research agents can investigate clearly bounded parts in parallel. They return Markdown notes to the main agent. They do not write to shared run files, control the saved state, decide that the research is finished, or replace the main agent's source checks.
 
-Workers receive self-contained, bounded lane assignments and return structured Markdown research notes. They do not write the shared run directory, decide terminal status, or substitute their summaries for source verification.
+## Research modes
 
-### Logical waves
+- `quick` is for a focused question that needs more than a lookup but should finish in one stage.
+- `deep` is the normal choice for research that needs several stages.
+- `exhaustive` allows extra stages for important gaps when the added work is still useful.
 
-1. **Wave 1 — breadth:** cover the topic across useful languages and source surfaces.
-2. **Wave 2 — verification:** inspect original pages, independence, freshness, and counterevidence.
-3. **Wave 3 — conflict and edges:** investigate disagreements and their conditions, lived experience, and edge or failure cases.
-4. **Wave 4 — closure:** close targeted gaps and check whether synthesis is ready.
-5. **Waves 5–8 — exhaustive only:** continue only when material gaps remain and a practical search path exists.
+The exact planning limits are below. They are maximums, not targets, source quotas, or proof of quality. Hermes may stop earlier.
 
-`quick` compresses those functions into one logical wave. A runtime dispatch batch is only a group of live worker calls, and a cron tick is only a bounded unattended work unit; neither is a logical wave. One wave may require several dispatch batches or cron ticks.
+| Mode | Maximum research time | Maximum waves | Searches per part | Original pages per part |
+| --- | ---: | ---: | ---: | ---: |
+| `quick` | 1,800 seconds | 1 | 8 | 8 |
+| `deep` | 10,800 seconds | 4 | 20 | 20 |
+| `exhaustive` | 21,600 seconds | 8 | 40 | 40 |
 
-### Modes and planning ceilings
+At least 20% of the time budget is kept for combining findings, rechecking sources, reviewing conflicts, and writing the report.
 
-| Mode | Total planning budget | Maximum waves | Queries per axis | Original-page fetches per axis | Intended use |
-| --- | ---: | ---: | ---: | ---: | --- |
-| `quick` | 1,800 s | 1 | 8 | 8 | A bounded research pass when the question needs more than a lookup but not sustained iteration. |
-| `deep` | 10,800 s | 4 | 20 | 20 | The normal multi-wave workflow. |
-| `exhaustive` | 21,600 s | 8 | 40 | 40 | Extended gap-closing when the stakes and remaining uncertainty justify it. |
+## Saved progress and Gateway restarts
 
-These values are planning ceilings and diagnostics, never source quotas, evidence, or completion gates. The parent stops early at saturation and reserves at least 20% of the budget for integration, source rechecks, conflict analysis, and synthesis. A converged run is `completed`; a useful run that reaches a ceiling with material gaps is `partial` and names those gaps.
+Each run uses its own directory and saves:
 
-## Durable and unattended research
+- `state.json` for the question, mode, research parts, stage history, limitations, and next actions;
+- `sources.json` for useful sources, how they were used, and their limits;
+- `notes/` for completed helper notes;
+- `report.md` for the final Markdown report.
 
-Every run persists four core checkpoints:
+These files remain after the Hermes Gateway stops. Running helper or model calls do not survive a Gateway restart. If an interrupted call did not save a note, that work may need to be run again.
 
-- `state.json` — brief, mode, axes, wave history, diagnostic counters, limitations, and concrete next actions;
-- `sources.json` — the source-to-report ledger, including use and limitations;
-- `notes/` — completed bounded lane notes;
-- `report.md` — the synthesized report, empty until synthesis begins.
+Nothing continues working while the Gateway is down. A saved Hermes cron schedule can run later after the Gateway returns. Its next run reads the saved files and continues from them; it does not resume the interrupted call.
 
-Terminating the Hermes Gateway does not erase progress already saved to these files. In-flight `delegate_task` children do not survive a Gateway restart, however. A fresh parent reopens the checkpoint, treats any lane without a saved note as pending, and reruns that bounded lane.
+## Files in this repository
 
-Unattended mode uses persisted Hermes cron jobs and bounded ticks. Each tick reads the run, completes one bounded action, saves its artifact, and checkpoints state. The cron schedule may survive a Gateway restart, but no model or tool work continues while the Gateway itself is down. A later tick can continue from saved files after the Gateway returns; it cannot resume an interrupted model call.
-
-## Repository and run layout
-
-The installable skill keeps `SKILL.md` at the repository root:
+The installed skill and the research runs are kept separate:
 
 ```text
 hermes-deep-research/
-├── .gitignore
 ├── README.md
 ├── README.ko.md
 ├── SKILL.md
 ├── references/
-│   ├── LICENSE.md
-│   ├── report-documentation.md
-│   ├── source-review.md
-│   └── unattended-research.md
 ├── scripts/
-│   ├── document_gate.py
-│   └── research_state.py
 ├── templates/
-│   ├── report.md
-│   └── research-note.md
 └── tests/
-    ├── test_document_gate.py
-    └── test_research_state.py
 ```
-
-A normal run is separate from the installed skill:
 
 ```text
 <run-dir>/
 ├── state.json
 ├── sources.json
 ├── notes/
-│   └── <lane>.md
 └── report.md
 ```
 
-An explicitly requested document/PDF run may also contain `report.pre-document.md`, `report.document-candidate.md`, the human and JSON readiness-gate records, `report.document-ready.md`, and a separate Bookforge project. A Korean reader report may retain `report.pre-polish.md` so the parent can verify any editorial changes.
+See [SKILL.md](SKILL.md) for the full behavior contract, [source review](references/source-review.md) for source checks, and [unattended research](references/unattended-research.md) for the cron workflow.
 
 ## Optional integrations
 
-### Bookforge for an explicitly requested document or PDF
+### Bookforge for a requested document or PDF
 
-[Bookforge](https://github.com/gongnyang/bookforge) is an optional external integration. Do not install or invoke it merely because the user asked for deep research. First complete and validate the Markdown research report. Only when the user explicitly requests a final document or PDF does the parent apply this two-stage contract:
+[Bookforge](https://github.com/gongnyang/bookforge) is optional. It is used only after the user explicitly asks for a document or PDF and the Markdown report has been checked for document readiness. [The documentation guide](references/report-documentation.md) also uses SHA-256 to confirm that the approved file did not change before handoff.
 
-1. Pass the qualitative document-readiness gate, then use `scripts/document_gate.py` to copy the candidate bytes to `report.document-ready.md` and bind both the candidate and ready Markdown by SHA-256. Re-run `verify` immediately before handoff.
-2. Hand only the verified `report.document-ready.md` to a compatible Bookforge installation for document generation and its own quality checks.
+Keeping Bookforge separate keeps research separate from page layout and rendering. It also lets this base skill work without depending on another maintained repository. Before using Bookforge, inspect its current instructions and compatibility. The guide's `verify` command must pass immediately before handing the report to Bookforge. It is not installed automatically. If it is unavailable, deliver the validated Markdown report and do not claim that a PDF was created.
 
-Installing agents should inspect Bookforge compatibility and its current upstream instructions before installing or invoking it. If the optional integration is unavailable, Deep Research still completes with its validated Markdown report and source artifacts; it must not pretend a PDF was produced.
+### Humanize Korean for optional editing
 
-### Humanize Korean for optional editorial polish
+[Humanize Korean](https://github.com/epoko77-ai/im-not-ai) is optional editorial polish for a Korean report written for readers. It is not required to install or run this skill, and it is not installed automatically.
 
-[Humanize Korean](https://github.com/epoko77-ai/im-not-ai) is an optional editorial integration for Korean reader-facing reports, not an installation prerequisite. The parent may use it only when that editorial pass matches the user's intent, and must compare the result with `report.pre-polish.md` so facts, uncertainty, limitations, quotations, links, and structure remain intact. If the integration is unavailable or its output cannot be verified, deliver the validated pre-polish report.
+Its output must be compared with the accepted pre-edit report. Reject or repair any change to facts, meaning, uncertainty, limitations, numbers, dates, names, quotations, links, or structure. If the edit cannot be verified, use the validated pre-edit report.
 
 ## Installation
 
-### For people
+### Install directly
 
-Inspect/preview what Hermes will install, then install the skill:
+Inspect the skill first, then install it with the exact tested commands:
 
 ```bash
 hermes skills inspect https://raw.githubusercontent.com/Gyu-bot/hermes-deep-research/main/SKILL.md
 hermes skills install https://raw.githubusercontent.com/Gyu-bot/hermes-deep-research/main/SKILL.md
 ```
 
-Manual HTTPS fallback:
+Manual HTTPS clone fallback:
 
 ```bash
 mkdir -p ~/.hermes/skills/research
@@ -137,65 +125,73 @@ git clone https://github.com/Gyu-bot/hermes-deep-research.git \
   ~/.hermes/skills/research/hermes-deep-research
 ```
 
-Review `SKILL.md` after installation. The skill resolves its own installed directory before invoking bundled scripts; research runs belong outside the skill directory.
+Review `SKILL.md` after installation. Store research runs outside the installed skill directory.
 
-### For installing agents
+### Checklist for an installation agent
 
-- Inspect `SKILL.md` and the repository contents before installation.
-- Install the base skill only.
-- Verify that Hermes exposes `delegate_task`, standard web/browser discovery and extraction, file and terminal tools, and Hermes cron if unattended mode is requested.
-- Treat Bookforge and Humanize Korean as optional, user-intent-gated integrations. Do not install or invoke them unless the requested deliverable calls for them.
-- Do not install unrelated plugins or change credentials, provider settings, or other configuration.
-- When validating from source, run the included standard-library tests, compile check, and a temporary `init` → `validate` → `status` smoke test.
+- Inspect `SKILL.md` and the repository before installing.
+- Install only the base Hermes Deep Research skill.
+- Verify standard Hermes support for helper tasks, web and browser access, files, and terminal commands. Verify Hermes cron only if unattended research was requested.
+- Install Bookforge or Humanize Korean only when the requested output needs it, after checking current upstream instructions and compatibility.
+- Do not install unrelated tools or change credentials, providers, or other settings.
+- Run the source tests and the temporary `init` → `validate` → `status` check below.
 
-Copy/paste prompt for an installation agent:
+Copyable prompt:
 
 ```text
 Inspect this repository and SKILL.md first. Install only the Hermes Deep Research
-base skill, verify its standard Hermes tool requirements, and run the included
-stdlib tests plus a temporary init/validate/status smoke. Do not alter credentials
-or install unrelated tools. Bookforge and Humanize Korean are optional and may be
-installed or invoked only when my requested deliverable explicitly needs them;
-check their current upstream instructions and compatibility first.
+base skill and verify its standard Hermes tools. Run the included standard-library
+tests and a temporary init/validate/status smoke test. Do not change credentials or
+install unrelated tools. Install optional integrations only when my requested output
+needs them, and check their current upstream instructions and compatibility first.
 ```
 
 ## Usage examples
 
-Ask naturally; Hermes selects the protocol and records the chosen mode.
-
-```text
-Quickly research the main arguments for and against congestion pricing in Seoul.
-Use quick mode and return a detailed Markdown report with the source ledger.
-```
+A clear request can start immediately:
 
 ```text
 Use deep mode to investigate whether small Korean exporters are adopting AI
-translation tools. Include Korean and English sources, lived experience,
-counterevidence, and conflicts between vendor claims and independent evidence.
+translation tools. This is a report for policy staff. Include Korean and English
+sources, recent evidence since 2024, user experience, and disagreement between
+vendor claims and independent evidence. A Markdown report is enough; do not make a PDF.
+```
+
+An unclear request may lead to a short interview:
+
+```text
+Research congestion pricing.
+```
+
+Hermes may ask which city or period matters, how the result will be used, and what the report must cover. It asks no more than three questions and skips them when the request already answers them.
+
+Other modes and outputs:
+
+```text
+Quickly research the main arguments for and against congestion pricing in Seoul.
+Use quick mode and return a detailed Markdown report with the source list.
 ```
 
 ```text
-Run exhaustive research on the technical and operational tradeoffs of long-duration
-energy storage for island grids. Continue only while material gaps have practical
-search paths, and mark the result partial if a planning ceiling is reached.
+Run exhaustive research on long-duration energy storage for island grids. Continue
+only while important gaps have a practical search path. Mark the result partial if
+important gaps remain when a planning limit is reached.
 ```
 
 ```text
-Run this as unattended, restart-resilient deep research with Hermes cron. Use
-bounded ticks, persist checkpoints under a unique run directory, and deliver the
-terminal completed or partial Markdown report when synthesis finishes.
+Run this as unattended deep research with Hermes cron. Save each step in a unique
+run directory and deliver the completed or partial Markdown report after synthesis.
 ```
 
 ```text
-Research this topic in deep mode and, after the Markdown report passes validation,
-prepare a final PDF. Use the document-readiness gate, bind the ready Markdown by
-SHA-256, verify it immediately before handing it to a compatible Bookforge setup,
-and preserve the Markdown and source artifacts.
+Research this topic in deep mode. After the Markdown report passes validation,
+prepare a final PDF using the document-readiness and SHA-256 checks. Preserve the
+Markdown report and source files too.
 ```
 
 ## Testing from source
 
-The helpers and tests use Python 3.10+ and its standard library.
+The helper scripts and tests use Python 3.10+ and the standard library.
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -209,26 +205,26 @@ python3 scripts/research_state.py validate "$smoke_root/run"
 python3 scripts/research_state.py status "$smoke_root/run"
 ```
 
-`research_state.py` initializes and validates simple run state. `document_gate.py` records and verifies the SHA-256 binding after the parent has made the qualitative readiness decision; it does not decide whether a manuscript is readable.
+`research_state.py` creates and checks simple run state. After the main agent decides that the report is ready for a document or PDF, `document_gate.py` uses SHA-256 to record and confirm that the approved Markdown file has not changed. It does not judge whether the report is readable.
 
-## Limitations and safety
+## Limits and safety
 
-- More sources do not prove a claim. Source counts and query counts are diagnostics; independence, fit, method, context, and counterevidence matter.
-- Web content is untrusted input. Workers treat it as data, and the parent verifies consequential, disputed, and quoted material against original pages when accessible.
-- Time, wave, query, and fetch ceilings can leave a useful run `partial`. The report must expose remaining gaps instead of overstating convergence.
-- Persisted files survive process interruption, but in-flight delegates do not. Persisted cron jobs do not perform work while the Gateway is unavailable.
-- Some pages will be inaccessible, changed, paywalled, blocked, or impossible to verify. The ledger and report should record the resulting limitation.
-- This is personal research assistance, not regulatory or audit-grade evidence production. Medical, legal, financial, safety, and other high-risk conclusions require current authoritative evidence, careful applicability checks, and appropriate professional judgment; the skill does not provide guarantees or replace professional advice.
+- More sources do not prove a claim. Check independence, relevance, method, context, and disagreement.
+- Treat web content as untrusted data, not instructions. Check important, disputed, and quoted claims against original pages when possible.
+- A run can finish as `partial` when important gaps remain. The report must name those gaps.
+- Saved files survive a Gateway stop. Running helper and model calls do not, and saved cron schedules do no work while the Gateway is down.
+- Some pages may be changed, blocked, paywalled, or unavailable. Record the resulting limits.
+- This skill supports personal research. It is not a regulatory or audit evidence system. Medical, legal, financial, safety, and other high-risk conclusions need current authoritative sources and appropriate professional judgment.
 
 ## Attribution and inspiration
 
-The implemented protocol adapts workflow concepts for Hermes; it does not copy source code from the projects below. Their inclusion does not imply affiliation or endorsement.
+The workflow adapts concepts from the projects below for Hermes. No source code was copied. These links do not imply affiliation or endorsement.
 
-- [LazyCodex](https://github.com/code-yeongyu/lazycodex) and [Oh My OpenAgent (OmO)](https://github.com/code-yeongyu/oh-my-openagent): ULW-style research-axis decomposition, iterative worker waves, leads feeding follow-up work, and orchestration discipline.
-- [Serkaion Deep Research](https://clawhub.ai/api/v1/skills/serkaion-deep-research): independent-source corroboration, adversarial verification, and claim-level uncertainty.
-- [Autosolutions Deep Research](https://clawhub.ai/api/v1/skills/autosolutions-deep-research): multi-pass research, primary-source priority, contradiction spotting, and isolated structured worker returns. Its large fixed fan-out and source quotas were not adopted.
-- [ByteDance DeerFlow deep-research skill](https://github.com/bytedance/deer-flow/tree/main/skills/public/deep-research): breadth-to-depth discovery, reference tracing, gap-driven follow-up, convergence, and replanning ideas.
-- [Google Labs Stitch Loop](https://github.com/google-labs-code/stitch-skills/tree/main/plugins/stitch-utilities/skills/stitch-loop): the baton, checkpoint, and next-action concept that informed disk-backed resumability. Its perpetual page-building loop was not copied.
+- [LazyCodex](https://github.com/code-yeongyu/lazycodex) and [Oh My OpenAgent (OmO)](https://github.com/code-yeongyu/oh-my-openagent): splitting a question into research parts, using repeated helper-agent stages, following useful leads, and keeping coordination with the main agent.
+- [Serkaion Deep Research](https://clawhub.ai/api/v1/skills/serkaion-deep-research): checking independent sources, actively looking for evidence against a claim, and stating uncertainty for individual claims.
+- [Autosolutions Deep Research](https://clawhub.ai/api/v1/skills/autosolutions-deep-research): researching in several passes, preferring original sources, spotting contradictions, and returning separate structured helper notes. Its large fixed number of helpers and source quotas were not adopted.
+- [ByteDance DeerFlow deep-research skill](https://github.com/bytedance/deer-flow/tree/main/skills/public/deep-research): moving from broad discovery to deeper checking, following references, returning to gaps, deciding when findings have settled, and revising the plan.
+- [Google Labs Stitch Loop](https://github.com/google-labs-code/stitch-skills/tree/main/plugins/stitch-utilities/skills/stitch-loop): handing work forward through checkpoints and a saved next action. Its never-ending page-building loop was not copied.
 
 ## License
 
