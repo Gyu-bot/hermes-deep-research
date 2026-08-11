@@ -135,6 +135,7 @@ Persistent Goals may support iterative work in the same session when the user in
 
 ## Bundled resources
 
+- [references/LICENSE.md](references/LICENSE.md) contains the MIT license terms.
 - Read [references/source-review.md](references/source-review.md) before reviewing or integrating sources.
 - Read [references/unattended-research.md](references/unattended-research.md) before creating an unattended job.
 - Read [references/report-documentation.md](references/report-documentation.md) only for an explicitly requested final report document or PDF.

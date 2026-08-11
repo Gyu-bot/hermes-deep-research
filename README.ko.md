@@ -75,6 +75,7 @@ hermes-deep-research/
 ├── README.ko.md
 ├── SKILL.md
 ├── references/
+│   ├── LICENSE.md
 │   ├── report-documentation.md
 │   ├── source-review.md
 │   └── unattended-research.md
