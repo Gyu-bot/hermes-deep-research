@@ -61,7 +61,18 @@ git clone https://github.com/Gyu-bot/hermes-deep-research.git \
 
 Read `SKILL.md` after installing. Keep research runs outside the installed skill directory — the skill package and the run artifacts are deliberately separate.
 
-Hermes cron is needed only for unattended runs. Bookforge and Humanize Korean are optional and are never installed automatically.
+Hermes cron is needed only for unattended runs.
+
+### Optional external skills
+
+Two separately maintained skills extend the deliverables. Neither ships with this repository and neither is installed automatically — each is its own project that you install yourself, following that project's current instructions. Recommended if you want what they produce:
+
+| Skill | Install it when you want | Repository |
+| --- | --- | --- |
+| **Bookforge** | A rendered PDF of the finished report — the only supported path to one | [gongnyang/bookforge](https://github.com/gongnyang/bookforge) |
+| **Humanize Korean** | A Korean reader report without AI-sounding phrasing and translationese | [epoko77-ai/im-not-ai](https://github.com/epoko77-ai/im-not-ai) |
+
+Install each from its own repository and check its compatibility before invoking it — do not copy its scripts or instructions into this skill. Research itself is complete without either: if the integration you need is missing, Hermes delivers the validated Markdown and says so rather than claiming a PDF or a polished draft it did not produce. See [Optional integrations](#-optional-integrations) for how each one is gated.
 
 <details>
 <summary>Checklist for an installation agent</summary>
@@ -69,7 +80,7 @@ Hermes cron is needed only for unattended runs. Bookforge and Humanize Korean ar
 - Inspect `SKILL.md` and the repository before installing anything.
 - Install only the Hermes Deep Research base skill.
 - Confirm standard Hermes support for helper tasks, web and browser access, files, and terminal commands. Confirm Hermes cron only if unattended research was requested.
-- Install Bookforge or Humanize Korean only when the requested deliverable needs them, and check their current upstream instructions and compatibility first.
+- Install the optional external skills separately from their own repositories, only when the requested deliverable needs them, and check their current upstream instructions and compatibility first.
 - Do not install unrelated tools or change credentials, providers, or other settings.
 - Run the tests and the temporary `init` → `validate` → `status` smoke check from the development section below.
 
@@ -191,7 +202,7 @@ For unattended work, the skill uses Hermes cron directly — one bounded, self-c
 
 ## 🔌 Optional integrations
 
-Both are genuinely optional, are never installed automatically, and should be checked against their current upstream instructions before use.
+Both are external skills maintained in their own repositories, [installed separately](#optional-external-skills) and never pulled in automatically. Both are recommended for the deliverables they cover — a requested PDF is only produced through Bookforge, and a Korean reader report benefits from Humanize Korean — but deep research completes without either, and neither is a dependency of this skill. Check their current upstream instructions before use.
 
 ### Bookforge — for a requested document or PDF
 
