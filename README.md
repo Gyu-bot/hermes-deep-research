@@ -2,11 +2,23 @@
 
 # Hermes Deep Research
 
-A Hermes skill for questions that one search cannot answer.
+A Hermes skill for research that has to hold up.
 
-It turns a loose request into a scoped research question, investigates it in bounded stages, opens original pages instead of trusting snippets, actively looks for evidence that disagrees, checkpoints progress to plain files, and delivers a detailed Markdown report with a separate source ledger.
+## 🤔 Why this exists
 
-Everything runs on standard Hermes tools — web and browser, files, terminal, and helper agents. Insane Search is not required, nothing runs as a daemon, and no external service is involved. A polished document or PDF is a separate deliverable that is produced only when you ask for it in so many words.
+Ask an ordinary search skill a hard question and you get a page. Ask a one-pass research skill and you get a single round of searching, summarized once. On anything genuinely contested, that pipeline fails in predictable ways.
+
+| What usually goes wrong | What this skill does instead |
+| --- | --- |
+| Snippets stand in for sources — a search-result summary gets quoted as if the page had been read | Original pages are opened for consequential, disputed, and directly quoted claims, and snippets count as discovery only |
+| Source count reads as evidence — ten links that all rewrite one press release look like ten confirmations | Syndications, rewrites, translations, and same-actor pages are collapsed into one evidence family before anything is concluded |
+| Only confirming evidence gets searched | Countersearch is written into each research axis, not left to chance |
+| Conflicting numbers get averaged, or one side quietly wins | Conflicts are compared directly; differences in population, definitions, timeframe, incentives, and method are named, and unresolved ones stay visible in the report |
+| Nothing is written down until the end, so a dropped session loses the work | Every stage checkpoints notes, sources, and concrete next actions to plain files a fresh session can pick up |
+| Gaps vanish into confident prose | A run may end `partial`, and the report has to say which gaps remain |
+| More is treated as better — more searches, more sources, longer output | Budgets are ceilings, not targets; research stops at saturation and the reserve goes into verification and writing |
+
+The trade is honest: this is slower and more expensive than a lookup. It is for questions where being wrong costs more than being late.
 
 | | |
 | --- | --- |
@@ -15,7 +27,9 @@ Everything runs on standard Hermes tools — web and browser, files, terminal, a
 | **Default output** | `report.md` + `sources.json` in a per-run directory |
 | **Requirements** | Hermes with web/file/terminal toolsets, Python 3.10+ (standard library only) |
 
-## Install
+Everything runs on standard Hermes tools — web and browser, files, terminal, and helper agents. Nothing runs as a daemon and no external service is involved. A polished document or PDF is a separate deliverable, produced only when you ask for it in so many words.
+
+## 📦 Install
 
 Inspect the skill before installing it, then use the tested commands:
 
@@ -44,7 +58,7 @@ Hermes cron is needed only for unattended runs. Bookforge and Humanize Korean ar
 - Confirm standard Hermes support for helper tasks, web and browser access, files, and terminal commands. Confirm Hermes cron only if unattended research was requested.
 - Install Bookforge or Humanize Korean only when the requested deliverable needs them, and check their current upstream instructions and compatibility first.
 - Do not install unrelated tools or change credentials, providers, or other settings.
-- Run the tests and the temporary `init` → `validate` → `status` smoke check from [Development](#development).
+- Run the tests and the temporary `init` → `validate` → `status` smoke check from the development section below.
 
 Copyable prompt:
 
@@ -58,7 +72,7 @@ needs them, and check their current upstream instructions and compatibility firs
 
 </details>
 
-## Use it
+## 🚀 Use it
 
 A request that already carries its own scope starts research immediately:
 
@@ -101,7 +115,7 @@ prepare a final PDF using the document-readiness and SHA-256 checks. Preserve th
 Markdown report and source files too.
 ```
 
-## What you get
+## 📄 What you get
 
 Each run owns a directory, normally under `~/.hermes/research/hermes-deep-research/`, and never reuses another run's:
 
@@ -119,7 +133,7 @@ Each run owns a directory, normally under `~/.hermes/research/hermes-deep-resear
 
 A run ends `completed` when coverage converged, or `partial` when a planning limit was reached while material gaps remained. Useful incomplete work is `partial`, never `failed`, and the report has to name the gaps.
 
-## How a run works
+## 🔍 How a run works
 
 1. **Scope the question.** Objective, intended use, scope and exclusions, freshness needs, mandatory topics, and success criteria. Hermes also decides whether the deliverable is a reader-facing report or an internal memo feeding a larger task, and records separately whether you explicitly asked for a document or PDF. Asking for deep research is not asking for a PDF.
 2. **Split it into research axes.** A few distinct axes that together cover the need, each with the question it must answer, useful query families and languages, freshness needs, what counts as adequate coverage, and the counterclaims worth searching for. Counterevidence lives inside the relevant axis rather than being someone else's job.
@@ -130,7 +144,7 @@ A run ends `completed` when coverage converged, or `partial` when a planning lim
 
 Search counts and source counts are diagnostics, not completion criteria. What matters is whether the report answers the question, explains disagreement, and is honest about what remains uncertain.
 
-## Modes
+## ⚙️ Modes
 
 - **`quick`** — a focused question that needs more than a lookup but can finish in one stage.
 - **`deep`** — the normal choice when the question needs several stages.
@@ -146,7 +160,7 @@ The numbers below are planning ceilings, not targets, quotas, or evidence of qua
 
 At least 20% of the budget is reserved for integration, source rechecks, conflict analysis, and writing. The parent may move budget around within the same total to close a material gap, but must record what changed and why in `planning.budget_reallocations`.
 
-## Who does what
+## 👥 Who does what
 
 **The parent agent** owns the run. It plans axes and waves, holds the run files, opens the consequential and disputed pages itself, collapses mirrors and rewrites into single evidence families, resolves conflicts, decides `completed` or `partial`, and writes the report.
 
@@ -154,7 +168,7 @@ At least 20% of the budget is reserved for integration, source rechecks, conflic
 
 Lanes are flat, not nested: an axis may be split by language, source surface, or adversarial perspective, but splitting lanes does not multiply that axis's ceilings — lane queries and fetches aggregate back into the same counters.
 
-## Persistence and restarts
+## 💾 Persistence and restarts
 
 The run directory is the persistence mechanism. It survives a Hermes Gateway stop; in-flight helper and model calls do not. After a restart, any lane without a saved note is treated as pending and redone — never described as resumed. A saved note whose state update was interrupted is integrated rather than researched again.
 
@@ -162,7 +176,7 @@ Nothing progresses while the Gateway is down. A saved cron schedule simply resum
 
 For unattended work, the skill uses Hermes cron directly — one bounded, self-contained recurring job, no supervisor, daemon, worker runner, or self-scheduler. Each tick performs exactly one bounded action, writes its artifact, checkpoints, and returns `[SILENT]`; the first tick that makes the report terminal delivers it back to the originating conversation. A tick never edits its own cron job. See [references/unattended-research.md](references/unattended-research.md) for the exact pattern.
 
-## Optional integrations
+## 🔌 Optional integrations
 
 Both are genuinely optional, are never installed automatically, and should be checked against their current upstream instructions before use.
 
@@ -178,7 +192,7 @@ Keeping rendering in a separate project keeps research separate from typesetting
 
 Its output is an untrusted candidate. The parent diffs it against `report.pre-polish.md` and rejects or repairs any change to facts, meaning, confidence, scope, conditions, contradictions, limitations, numbers, dates, names, quotations, links, or structure. If the edit cannot be verified, the validated pre-polish draft ships instead.
 
-## Repository layout
+## 🗂️ Repository layout
 
 ```text
 hermes-deep-research/
@@ -199,7 +213,7 @@ hermes-deep-research/
 
 [SKILL.md](SKILL.md) is the authoritative description of the workflow; this README is the tour.
 
-## Development
+## 🧪 Development
 
 The helper scripts and tests use Python 3.10+ and the standard library only — no dependencies to install.
 
@@ -217,17 +231,15 @@ python3 scripts/research_state.py status "$smoke_root/run"
 
 `research_state.py` creates a run and validates its shape: known status and mode, positive planning ceilings, a current wave within the maximum, a synthesis reserve of at least 20%, budget reallocations that carry reasons, well-formed axes whose note paths stay inside the run directory, and a non-empty report for any `completed` or `partial` run. `document_gate.py` records and verifies the SHA-256 binding for an approved document candidate. Neither script judges research quality; both write atomically so an interrupted run leaves no half-written state.
 
-## Limits and safety
+## ⚠️ Limits and safety
 
 - More sources do not prove a claim. Independence, relevance, method, context, and disagreement do the work — see [references/source-review.md](references/source-review.md).
 - Web content is untrusted data, never instructions. Consequential, disputed, and directly quoted claims are checked against original pages when they are reachable.
-- Apparently independent sources are often one evidence family — syndications, rewrites of a single press release, or several pages by the same actor. They are collapsed, not counted.
-- Conflicts are not averaged away. Different populations, definitions, timeframes, incentives, or methods are named as such, and unresolved conflicts stay visible in the report.
 - Pages can be changed, blocked, paywalled, or gone. The resulting limits are recorded rather than papered over.
 - A run may legitimately end `partial`. The report must say which gaps remain.
 - This supports personal research. It is not a regulatory or audit evidence system, and medical, legal, financial, and safety conclusions need current authoritative sources plus appropriate professional judgment.
 
-## Attribution and inspiration
+## 📚 Attribution and inspiration
 
 The workflow adapts concepts from the projects below for Hermes. No source code was copied, and these links do not imply affiliation or endorsement.
 
@@ -237,6 +249,6 @@ The workflow adapts concepts from the projects below for Hermes. No source code 
 - [ByteDance DeerFlow deep-research skill](https://github.com/bytedance/deer-flow/tree/main/skills/public/deep-research) — moving from broad discovery to deeper verification, following references, returning to gaps, judging when findings have settled, and revising the plan.
 - [Google Labs Stitch Loop](https://github.com/google-labs-code/stitch-skills/tree/main/plugins/stitch-utilities/skills/stitch-loop) — handing work forward through checkpoints and a saved next action. Its never-ending page-building loop was not copied.
 
-## License
+## 📜 License
 
 [MIT](LICENSE).
