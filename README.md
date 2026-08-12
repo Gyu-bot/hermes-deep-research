@@ -65,14 +65,14 @@ Hermes cron is needed only for unattended runs.
 
 ### Optional external skills
 
-Two separately maintained skills extend the deliverables. Neither ships with this repository and neither is installed automatically — each is its own project that you install yourself, following that project's current instructions. Recommended if you want what they produce:
+Two separately maintained skills turn the finished research into something people actually enjoy reading — one at the sentence layer, one at the document layer. Neither ships with this repository and neither is installed automatically; each is its own project that you install yourself, following that project's current instructions. Recommended when a final report is the deliverable:
 
-| Skill | Install it when you want | Repository |
+| Skill | What it is for | Repository |
 | --- | --- | --- |
-| **Bookforge** | A rendered PDF of the finished report — the only supported path to one | [gongnyang/bookforge](https://github.com/gongnyang/bookforge) |
-| **Humanize Korean** | A Korean reader report without AI-sounding phrasing and translationese | [epoko77-ai/im-not-ai](https://github.com/epoko77-ai/im-not-ai) |
+| **Bookforge** | Document design — laying the approved report out as a typeset, well-structured PDF that reads well on the page. The only supported path to a PDF | [gongnyang/bookforge](https://github.com/gongnyang/bookforge) |
+| **Humanize Korean** | Sentence polish — rewriting Korean prose so it reads like a person wrote it, without AI-sounding phrasing or translationese | [epoko77-ai/im-not-ai](https://github.com/epoko77-ai/im-not-ai) |
 
-Install each from its own repository and check its compatibility before invoking it — do not copy its scripts or instructions into this skill. Research itself is complete without either: if the integration you need is missing, Hermes delivers the validated Markdown and says so rather than claiming a PDF or a polished draft it did not produce. See [Optional integrations](#-optional-integrations) for how each one is gated.
+Neither is used when the research is only feeding another task as context; they exist for the case where a person sits down and reads the final report. Install each from its own repository and check its compatibility before invoking it — do not copy its scripts or instructions into this skill. Research itself is complete without either: if the integration you need is missing, Hermes delivers the validated Markdown and says so rather than claiming a PDF or a polished draft it did not produce. See [Optional integrations](#-optional-integrations) for how each one is gated.
 
 <details>
 <summary>Checklist for an installation agent</summary>
@@ -202,19 +202,25 @@ For unattended work, the skill uses Hermes cron directly — one bounded, self-c
 
 ## 🔌 Optional integrations
 
-Both are external skills maintained in their own repositories, [installed separately](#optional-external-skills) and never pulled in automatically. Both are recommended for the deliverables they cover — a requested PDF is only produced through Bookforge, and a Korean reader report benefits from Humanize Korean — but deep research completes without either, and neither is a dependency of this skill. Check their current upstream instructions before use.
+Research produces a correct report. These two skills make it a pleasant one to read, at two different layers: **Humanize Korean** fixes how the sentences sound, and **Bookforge** fixes how the finished document looks. Neither touches what the research found.
 
-### Bookforge — for a requested document or PDF
+Both apply only when a final report is the deliverable — something a person will sit down and read. When the research is an internal memo feeding a larger task, its Markdown and source ledger go straight to whatever consumes them and neither skill runs. Both are also strictly post-research: they run after the `completed`/`partial` decision is already made, so polish and layout can never create evidence or change a status.
 
-[Bookforge](https://github.com/gongnyang/bookforge) renders a final PDF, and only after two gates have passed. First a document-readiness gate: the accepted report is preserved as `report.pre-document.md`, a document-only edit becomes `report.document-candidate.md`, and the parent records a qualitative `PASS`/`FAIL` in `report.document-readiness-gate.md` — automation does not judge readability. `scripts/document_gate.py pass` then copies the approved bytes to `report.document-ready.md` and binds them with SHA-256. Immediately before handoff, `document_gate.py verify` must succeed, or rendering is blocked.
+Both are external skills maintained in their own repositories, [installed separately](#optional-external-skills) and never pulled in automatically. Deep research completes without either, and neither is a dependency of this skill. Check their current upstream instructions before use.
+
+### Bookforge — document design for a requested PDF
+
+[Bookforge](https://github.com/gongnyang/bookforge) is the last mile: it takes the approved Markdown and lays it out as a typeset PDF — structure, typography, and a cover — so the report reads well on the page instead of looking like a dumped text file. It may normalize headings and chapter boundaries for typesetting, but it must not re-research, pad, or rewrite the report's claims.
+
+Two gates stand in front of it. First the document-readiness gate: the accepted report is preserved as `report.pre-document.md`, a document-only edit becomes `report.document-candidate.md`, and the parent records a qualitative `PASS`/`FAIL` in `report.document-readiness-gate.md` — automation does not judge readability. `scripts/document_gate.py pass` then copies the approved bytes to `report.document-ready.md` and binds them with SHA-256. Immediately before handoff, `document_gate.py verify` must succeed, or rendering is blocked.
 
 Keeping rendering in a separate project keeps research separate from typesetting and lets this skill work without depending on another repository. If Bookforge is unavailable, deliver the validated Markdown and do not claim a PDF was produced. Details: [references/report-documentation.md](references/report-documentation.md).
 
-### Humanize Korean — optional editorial polish
+### Humanize Korean — sentence polish for a Korean report
 
-[Humanize Korean](https://github.com/epoko77-ai/im-not-ai) removes AI-sounding Korean, translationese, and mechanical rhythm from a Korean reader report. It runs on a copy, never on the canonical draft, and only after the research status is already decided — editorial work must never create evidence or change status.
+[Humanize Korean](https://github.com/epoko77-ai/im-not-ai) works on the prose rather than the layout. It strips the AI-sounding Korean, translationese, padding, and mechanical rhythm that make an otherwise solid report tiring to read, while preserving meaning, facts, numbers, dates, proper nouns, quotations, technical terms, structure, links, uncertainty, and register. It runs on a copy, never on the canonical draft.
 
-Its output is an untrusted candidate. The parent diffs it against `report.pre-polish.md` and rejects or repairs any change to facts, meaning, confidence, scope, conditions, contradictions, limitations, numbers, dates, names, quotations, links, or structure. If the edit cannot be verified, the validated pre-polish draft ships instead.
+Its output is an untrusted candidate. The parent diffs it against `report.pre-polish.md` and rejects or repairs any change to facts, meaning, confidence, scope, conditions, contradictions, limitations, numbers, dates, names, quotations, links, or structure. If the edit cannot be verified, the validated pre-polish draft ships instead — smoother prose is never worth a weakened evidence check.
 
 ## 🗂️ Repository layout
 
