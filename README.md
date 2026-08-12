@@ -63,6 +63,14 @@ Read `SKILL.md` after installing. Keep research runs outside the installed skill
 
 Hermes cron is needed only for unattended runs.
 
+### Check subagent concurrency first
+
+`deep` and `exhaustive` runs dispatch several coverage lanes at once, and the default limit on concurrent subagents in a Hermes installation is often lower than that. Check that setting before your first real run and raise it if it is below the number of lanes a wave will dispatch — roughly one per research axis.
+
+Nothing breaks when the limit is too low: the parent falls back to running the lanes as several sequential batches inside the same wave, and coverage criteria never drop to match a runtime limit. But the run takes proportionally longer, and because the mode budget is wall-clock time, a serialized `deep` or `exhaustive` run can reach its limit and finish `partial` before coverage would otherwise have converged.
+
+The skill never hard-codes or changes this setting itself — it treats runtime limits purely as dispatch ceilings, so tuning it stays your decision.
+
 ### Optional external skills
 
 Two separately maintained skills turn the finished research into something people actually enjoy reading — one at the sentence layer, one at the document layer. Neither ships with this repository and neither is installed automatically; each is its own project that you install yourself, following that project's current instructions. Recommended when a final report is the deliverable:
@@ -80,6 +88,7 @@ Neither is used when the research is only feeding another task as context; they 
 - Inspect `SKILL.md` and the repository before installing anything.
 - Install only the Hermes Deep Research base skill.
 - Confirm standard Hermes support for helper tasks, web and browser access, files, and terminal commands. Confirm Hermes cron only if unattended research was requested.
+- Check the concurrent-subagent limit, tell the user its current value, and explain that a default below one lane per research axis serializes the waves and can push a long run to `partial`. Ask before changing it; never raise it silently.
 - Install the optional external skills separately from their own repositories, only when the requested deliverable needs them, and check their current upstream instructions and compatibility first.
 - Do not install unrelated tools or change credentials, providers, or other settings.
 - Run the tests and the temporary `init` → `validate` → `status` smoke check from the development section below.
@@ -89,9 +98,11 @@ Copyable prompt:
 ```text
 Inspect this repository and SKILL.md first. Install only the Hermes Deep Research
 base skill and verify its standard Hermes tools. Run the included standard-library
-tests and a temporary init/validate/status smoke test. Do not change credentials or
-install unrelated tools. Install optional integrations only when my requested output
-needs them, and check their current upstream instructions and compatibility first.
+tests and a temporary init/validate/status smoke test. Check my concurrent-subagent
+limit and tell me whether it is high enough for parallel research lanes, but ask
+before changing it. Do not change credentials or install unrelated tools. Install
+optional integrations only when my requested output needs them, and check their
+current upstream instructions and compatibility first.
 ```
 
 </details>
