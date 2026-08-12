@@ -65,11 +65,24 @@ Hermes cron is needed only for unattended runs.
 
 ### Check subagent concurrency first
 
-`deep` and `exhaustive` runs dispatch several coverage lanes at once, and the default limit on concurrent subagents in a Hermes installation is often lower than that. Check that setting before your first real run and raise it if it is below the number of lanes a wave will dispatch — roughly one per research axis.
+Coverage lanes are dispatched with `delegate_task`, and Hermes caps how many children run at once with `delegation.max_concurrent_children` — **3 by default**. A `deep` wave usually plans more lanes than that.
 
-Nothing breaks when the limit is too low: the parent falls back to running the lanes as several sequential batches inside the same wave, and coverage criteria never drop to match a runtime limit. But the run takes proportionally longer, and because the mode budget is wall-clock time, a serialized `deep` or `exhaustive` run can reach its limit and finish `partial` before coverage would otherwise have converged.
+The cap is enforced rather than smoothed over: per the Hermes documentation, "batches larger than the limit return a tool error rather than being silently truncated" — no queueing, no truncation. The parent is instructed to read the live limit and size its batches to fit, so a correctly behaving run serializes instead of erroring. But left at 3, a wave that planned six lanes runs as two sequential batches, the run takes proportionally longer, and since the mode budget is wall-clock time, `deep` and `exhaustive` runs can reach that budget and finish `partial` before coverage would otherwise have converged.
 
-The skill never hard-codes or changes this setting itself — it treats runtime limits purely as dispatch ceilings, so tuning it stays your decision.
+So raise it to roughly one per lane you expect in a wave before your first real run, in `~/.hermes/config.yaml`:
+
+```yaml
+delegation:
+  max_concurrent_children: 8   # default 3, floor 1, no hard ceiling
+```
+
+or for a single session:
+
+```bash
+export DELEGATION_MAX_CONCURRENT_CHILDREN=8
+```
+
+Concurrent children multiply token spend as well as throughput, so pick a number you actually want to pay for. Confirm the current key and default against the [Hermes delegation docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) — this skill never sets or changes the value itself, treating runtime limits purely as dispatch ceilings.
 
 ### Optional external skills
 
@@ -88,7 +101,7 @@ Neither is used when the research is only feeding another task as context; they 
 - Inspect `SKILL.md` and the repository before installing anything.
 - Install only the Hermes Deep Research base skill.
 - Confirm standard Hermes support for helper tasks, web and browser access, files, and terminal commands. Confirm Hermes cron only if unattended research was requested.
-- Check the concurrent-subagent limit, tell the user its current value, and explain that a default below one lane per research axis serializes the waves and can push a long run to `partial`. Ask before changing it; never raise it silently.
+- Check `delegation.max_concurrent_children` (default 3), report its current value to the user, and explain that leaving it below one per planned lane serializes each wave and can push a long run to `partial`. Ask before changing it; never raise it silently.
 - Install the optional external skills separately from their own repositories, only when the requested deliverable needs them, and check their current upstream instructions and compatibility first.
 - Do not install unrelated tools or change credentials, providers, or other settings.
 - Run the tests and the temporary `init` → `validate` → `status` smoke check from the development section below.
@@ -98,9 +111,10 @@ Copyable prompt:
 ```text
 Inspect this repository and SKILL.md first. Install only the Hermes Deep Research
 base skill and verify its standard Hermes tools. Run the included standard-library
-tests and a temporary init/validate/status smoke test. Check my concurrent-subagent
-limit and tell me whether it is high enough for parallel research lanes, but ask
-before changing it. Do not change credentials or install unrelated tools. Install
+tests and a temporary init/validate/status smoke test. Check my
+delegation.max_concurrent_children setting and tell me whether it is high enough
+for parallel research lanes, but ask before changing it. Do not change credentials
+or install unrelated tools. Install
 optional integrations only when my requested output needs them, and check their
 current upstream instructions and compatibility first.
 ```
