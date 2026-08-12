@@ -63,6 +63,27 @@ Read `SKILL.md` after installing. Keep research runs outside the installed skill
 
 Hermes cron is needed only for unattended runs.
 
+### Check subagent concurrency first
+
+Coverage lanes are dispatched with `delegate_task`, and Hermes caps how many children run at once with `delegation.max_concurrent_children` — **3 by default**. A `deep` wave usually plans more lanes than that.
+
+The cap is enforced rather than smoothed over: per the Hermes documentation, "batches larger than the limit return a tool error rather than being silently truncated" — no queueing, no truncation. The parent is instructed to read the live limit and size its batches to fit, so a correctly behaving run serializes instead of erroring. But left at 3, a wave that planned six lanes runs as two sequential batches, the run takes proportionally longer, and since the mode budget is wall-clock time, `deep` and `exhaustive` runs can reach that budget and finish `partial` before coverage would otherwise have converged.
+
+So raise it to roughly one per lane you expect in a wave before your first real run, in `~/.hermes/config.yaml`:
+
+```yaml
+delegation:
+  max_concurrent_children: 8   # default 3, floor 1, no hard ceiling
+```
+
+or for a single session:
+
+```bash
+export DELEGATION_MAX_CONCURRENT_CHILDREN=8
+```
+
+Concurrent children multiply token spend as well as throughput, so pick a number you actually want to pay for. Confirm the current key and default against the [Hermes delegation docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation) — this skill never sets or changes the value itself, treating runtime limits purely as dispatch ceilings.
+
 ### Optional external skills
 
 Two separately maintained skills turn the finished research into something people actually enjoy reading — one at the sentence layer, one at the document layer. Neither ships with this repository and neither is installed automatically; each is its own project that you install yourself, following that project's current instructions. Recommended when a final report is the deliverable:
@@ -80,6 +101,7 @@ Neither is used when the research is only feeding another task as context; they 
 - Inspect `SKILL.md` and the repository before installing anything.
 - Install only the Hermes Deep Research base skill.
 - Confirm standard Hermes support for helper tasks, web and browser access, files, and terminal commands. Confirm Hermes cron only if unattended research was requested.
+- Check `delegation.max_concurrent_children` (default 3), report its current value to the user, and explain that leaving it below one per planned lane serializes each wave and can push a long run to `partial`. Ask before changing it; never raise it silently.
 - Install the optional external skills separately from their own repositories, only when the requested deliverable needs them, and check their current upstream instructions and compatibility first.
 - Do not install unrelated tools or change credentials, providers, or other settings.
 - Run the tests and the temporary `init` → `validate` → `status` smoke check from the development section below.
@@ -89,9 +111,12 @@ Copyable prompt:
 ```text
 Inspect this repository and SKILL.md first. Install only the Hermes Deep Research
 base skill and verify its standard Hermes tools. Run the included standard-library
-tests and a temporary init/validate/status smoke test. Do not change credentials or
-install unrelated tools. Install optional integrations only when my requested output
-needs them, and check their current upstream instructions and compatibility first.
+tests and a temporary init/validate/status smoke test. Check my
+delegation.max_concurrent_children setting and tell me whether it is high enough
+for parallel research lanes, but ask before changing it. Do not change credentials
+or install unrelated tools. Install
+optional integrations only when my requested output needs them, and check their
+current upstream instructions and compatibility first.
 ```
 
 </details>
