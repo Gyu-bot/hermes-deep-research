@@ -6,7 +6,22 @@ A Hermes skill for research that has to hold up.
 
 ## 🤔 Why this exists
 
-Ask an ordinary search skill a hard question and you get a page. Ask a one-pass research skill and you get a single round of searching, summarized once. On anything genuinely contested, that pipeline fails in predictable ways.
+Ask an ordinary search skill a hard question and you get a page from the top few hits. Ask a one-pass research skill and you get a single round of searching, summarized once, held entirely in the conversation. On anything genuinely contested — or anything that takes longer than one session — both run out of road.
+
+### How it operates
+
+| | Ordinary search | One-pass research | Hermes Deep Research |
+| --- | --- | --- | --- |
+| **Structure** | One query, one result list | One round of searching, summarized once | The question is split into research axes and worked as parallel lanes |
+| **Coverage** | The top few hits | Whatever a single pass collected | Lanes per language and source surface, up to each axis's ceiling |
+| **Verification** | None | Whatever the summarization pass happened to catch | Each wave checks original pages, source independence, freshness, and counterevidence |
+| **Progress state** | None | Lives in the conversation context | `state.json`, `sources.json`, and `notes/` on disk, checkpointed every step |
+| **If the Gateway stops** | Not applicable — it already finished | The work dies with it | The files survive; the run reads them and continues from that point |
+| **Duration** | Seconds | One session | Hours, spread across sessions and restarts via cron |
+| **Finishing** | You decide when you have enough | Done after one pass | `completed` on convergence, `partial` at a limit — with the remaining gaps named |
+| **Output** | Links | A summary | A report plus a separate source ledger, and a PDF only on request |
+
+### What that changes in the result
 
 | What usually goes wrong | What this skill does instead |
 | --- | --- |
@@ -14,7 +29,6 @@ Ask an ordinary search skill a hard question and you get a page. Ask a one-pass 
 | Source count reads as evidence — ten links that all rewrite one press release look like ten confirmations | Syndications, rewrites, translations, and same-actor pages are collapsed into one evidence family before anything is concluded |
 | Only confirming evidence gets searched | Countersearch is written into each research axis, not left to chance |
 | Conflicting numbers get averaged, or one side quietly wins | Conflicts are compared directly; differences in population, definitions, timeframe, incentives, and method are named, and unresolved ones stay visible in the report |
-| Nothing is written down until the end, so a dropped session loses the work | Every stage checkpoints notes, sources, and concrete next actions to plain files a fresh session can pick up |
 | Gaps vanish into confident prose | A run may end `partial`, and the report has to say which gaps remain |
 | More is treated as better — more searches, more sources, longer output | Budgets are ceilings, not targets; research stops at saturation and the reserve goes into verification and writing |
 
@@ -24,10 +38,9 @@ The trade is honest: this is slower and more expensive than a lookup. It is for 
 | --- | --- |
 | **Use it for** | Multi-source investigation, conflicting accounts, lived experience and community discourse, long unattended research runs |
 | **Not for** | Quick lookups, and regulatory or audit-grade evidence |
-| **Default output** | `report.md` + `sources.json` in a per-run directory |
 | **Requirements** | Hermes with web/file/terminal toolsets, Python 3.10+ (standard library only) |
 
-Everything runs on standard Hermes tools — web and browser, files, terminal, and helper agents. Nothing runs as a daemon and no external service is involved. A polished document or PDF is a separate deliverable, produced only when you ask for it in so many words.
+Everything runs on standard Hermes tools — web and browser, files, terminal, and helper agents. Nothing runs as a daemon and no external service is involved.
 
 ## 📦 Install
 
