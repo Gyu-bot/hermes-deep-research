@@ -4,16 +4,18 @@ Use native Hermes cron plus file checkpoints. Do not create a daemon, supervisor
 
 ## Exact pattern
 
-1. In the interactive parent session, create an absolute run directory and initialize it:
+1. In the interactive parent session, create and initialize the confined run before any file-producing action:
 
 ```bash
-python3 /absolute/skill/dir/scripts/research_state.py \
-  init "/absolute/run/dir" \
+RUN_DIR="$(python3 /absolute/skill/dir/scripts/research_state.py \
+  create "short-topic" \
   --query "The full research question" \
   --mode deep \
   --axis "Axis one" \
-  --axis "Axis two"
+  --axis "Axis two")"
 ```
+
+Use the printed absolute `RUN_DIR` in the cron prompt. Keep every tick's file output inside it and use `RUN_DIR/tmp/workspace` as the workdir for shell commands.
 
 2. Put the mode planning ceilings, logical waves, and `next_actions` in `state.json`. Reserve at least 20% of the total planning budget for parent integration, source rechecks, conflict analysis, and synthesis. Use a bounded repeat count.
 3. Create one recurring or fixed-repeat LLM cron job attached to the skill. In a live Hermes session, use the `cronjob` tool with this shape:
@@ -46,6 +48,12 @@ resolve one material contradiction, or synthesize/recover the report. Open
 original pages for evidence and update sources.json. Write the note or report
 artifact before atomically checkpointing state.json. Record the completed step
 in waves and choose concrete next_actions.
+
+Treat the absolute run directory as the hard write boundary. Use tmp/workspace
+for terminal work and the matching tmp subdirectories for raw pages, data,
+downloads, extracts, scratch files, and lane work. Preserve every completed lane
+at lanes/<wave>/<lane-id>/result.md. Do not write in the starting cwd, home
+directory, system temporary directory, or installed skill directory.
 
 If an interrupted prior tick left no saved note or artifact, narrow and redo that action;
 do not claim the interrupted attempt resumed. If a useful report can be

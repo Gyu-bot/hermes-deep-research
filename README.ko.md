@@ -16,11 +16,12 @@ Hermes Deep Research는 검색 결과 하나를 빨리 찾기 위한 도구가 �
    - 최종 문서나 PDF를 명시적으로 요청했는지
 
    요청에 필요한 정보가 이미 들어 있다면 같은 내용을 다시 묻지 않고 바로 시작합니다.
-2. **질문을 몇 가지 조사 항목으로 나눕니다.** 각 항목은 답해야 할 질문이 분명해야 합니다. 모든 항목을 합치면 사용자의 목적을 다룰 수 있어야 합니다.
-3. **단계별로 조사합니다.** 여기서 웨이브는 검색 한 번이나 도구 호출 한 번이 아니라 조사 단계 하나를 뜻합니다. 첫 단계에서는 넓게 찾습니다. 두 번째 단계에서는 원문과 최신성을 확인하고, 여러 출처가 사실은 같은 자료를 옮긴 것은 아닌지, 반대되는 근거는 없는지 살핍니다. 세 번째 단계에서는 충돌하는 주장과 실제 예외 사례를 확인합니다. 네 번째 단계에서는 남은 빈틈을 채웁니다. `quick`은 이 모든 확인을 하나의 웨이브 안에서 진행합니다. `exhaustive`는 도움이 될 때만 웨이브를 더 늘릴 수 있습니다.
-4. **단계가 끝날 때마다 저장합니다.** 쓸 만한 노트와 출처, 한계, 다음 할 일을 파일에 남깁니다.
-5. **그만할 시점을 판단합니다.** 필요한 항목을 충분히 다뤘고 새 검색에서 이미 아는 내용만 반복해서 나온다면 멈춥니다. 정해 둔 최대 시간이나 단계에 도달했는데 중요한 빈틈이 남아 있다면, 그때까지 얻은 내용을 보고서로 쓰고 `partial`(일부 완료)로 표시합니다.
-6. **상세 보고서를 씁니다.** 기본 결과물은 자세한 `report.md`와 별도 출처 목록인 `sources.json`입니다. 문서나 PDF는 사용자가 명시적으로 요청했을 때만 만듭니다.
+2. **먼저 격리된 실행 디렉터리를 만듭니다.** 검색, 위임, 스크립트 작성, 다운로드, 추출, 문서 생성을 시작하기 전에 Hermes는 `$HERMES_HOME/research/hermes-deep-research` 아래에 타임스탬프가 붙은 고유한 `RUN_DIR`을 만듭니다. `HERMES_HOME`이 없으면 `~/.hermes`를 사용합니다. 생성되는 모든 파일은 그 안에 둡니다.
+3. **질문을 몇 가지 조사 항목으로 나눕니다.** 각 항목은 답해야 할 질문이 분명해야 합니다. 모든 항목을 합치면 사용자의 목적을 다룰 수 있어야 합니다.
+4. **단계별로 조사합니다.** 여기서 웨이브는 검색 한 번이나 도구 호출 한 번이 아니라 조사 단계 하나를 뜻합니다. 첫 단계에서는 넓게 찾습니다. 두 번째 단계에서는 원문과 최신성을 확인하고, 여러 출처가 사실은 같은 자료를 옮긴 것은 아닌지, 반대되는 근거는 없는지 살핍니다. 세 번째 단계에서는 충돌하는 주장과 실제 예외 사례를 확인합니다. 네 번째 단계에서는 남은 빈틈을 채웁니다. `quick`은 이 모든 확인을 하나의 웨이브 안에서 진행합니다. `exhaustive`는 도움이 될 때만 웨이브를 더 늘릴 수 있습니다.
+5. **단계가 끝날 때마다 저장합니다.** 쓸 만한 노트와 출처, 한계, 다음 할 일을 `RUN_DIR` 안의 파일에 남깁니다.
+6. **그만할 시점을 판단합니다.** 필요한 항목을 충분히 다뤘고 새 검색에서 이미 아는 내용만 반복해서 나온다면 멈춥니다. 정해 둔 최대 시간이나 단계에 도달했는데 중요한 빈틈이 남아 있다면, 그때까지 얻은 내용을 보고서로 쓰고 `partial`(일부 완료)로 표시합니다.
+7. **상세 보고서를 씁니다.** 기본 결과물은 자세한 `report.md`와 별도 출처 목록인 `sources.json`입니다. 문서나 PDF는 사용자가 명시적으로 요청했을 때만 만듭니다.
 
 ## 다른 방식과 비교
 
@@ -34,9 +35,9 @@ Hermes Deep Research는 검색 결과 하나를 빨리 찾기 위한 도구가 �
 
 ## 역할 분담
 
-메인 Hermes 에이전트가 조사 계획을 세우고 결과를 합칩니다. 저장 파일을 관리하고, 중요한 원문을 직접 읽고, 조사를 완료할지 `partial`로 마칠지 판단하고, 최종 보고서를 작성합니다.
+메인 Hermes 에이전트가 조사 계획을 세우고 결과를 합칩니다. `state.json`, `sources.json`, `notes/`, `report.md`를 관리하고, 중요한 원문을 직접 읽고, 조사를 완료할지 `partial`로 마칠지 판단하고, 최종 보고서를 작성합니다.
 
-보조 조사 에이전트는 범위가 분명한 항목을 각각 맡아 병렬로 조사할 수 있습니다. 조사 결과는 Markdown 노트로 메인 에이전트에 돌려줍니다. 공유 실행 파일에 직접 쓰거나 저장 상태를 관리하지 않으며, 조사 완료 여부를 결정하지도 않습니다. 메인 에이전트의 원문 확인도 대신하지 않습니다.
+보조 조사 에이전트는 범위가 분명한 항목을 각각 맡아 병렬로 조사할 수 있습니다. 각 보조 에이전트는 `RUN_DIR/tmp/lanes/<wave>/<lane-id>/`에서 작업하고 최종 조사 결과를 `RUN_DIR/lanes/<wave>/<lane-id>/result.md`에 보존합니다. 메인 상태·출처 목록·노트·보고서는 바꿀 수 없습니다. 메인 에이전트가 lane 결과를 읽고 채택한 내용을 `notes/`와 `sources.json`에 통합합니다.
 
 ## 조사 모드
 
@@ -56,12 +57,18 @@ Hermes Deep Research는 검색 결과 하나를 빨리 찾기 위한 도구가 �
 
 ## 저장과 Gateway 재시작
 
-실행마다 별도 디렉터리를 만들고 다음 파일을 저장합니다.
+실행마다 `$HERMES_HOME/research/hermes-deep-research` 아래에 고유한 디렉터리를 만듭니다. `HERMES_HOME`이 없으면 `~/.hermes/research/hermes-deep-research`를 사용합니다. `RUN_DIR`은 엄격한 경계입니다. 스크립트, 원시 페이지와 데이터, 다운로드, 추출물, 브라우저 출력, 문서 산출물을 모두 그 안에 둡니다. 메인 셸 명령은 `RUN_DIR/tmp/workspace`에서 실행하고, `state.json`에는 `tmp_path`를 상대 값 `tmp`로 기록합니다.
+
+각 실행은 다음 파일을 저장합니다.
 
 - `state.json`: 질문, 모드, 조사 항목, 단계 이력, 한계, 다음 할 일
 - `sources.json`: 쓸 만한 출처와 사용 방식, 한계
 - `notes/`: 완료된 보조 조사 노트
-- `report.md`: 최종 Markdown 보고서
+- `lanes/<wave>/<lane-id>/result.md`: 각 보조 에이전트의 영속 최종 결과
+- `report.md`와 보고서 변형 파일: 영속 보고서
+- `tmp/workspace/`, `tmp/raw-pages/`, `tmp/raw-data/`, `tmp/downloads/`, `tmp/extracts/`, `tmp/scratch/`, `tmp/lanes/`: 폐기 가능한 작업 파일만 저장
+
+Hermes는 홈 디렉터리 바로 아래, 시작 cwd, `/tmp`, 설치된 스킬 디렉터리에 조사 파일을 쓰지 않습니다. 도구가 관리하는 임시 저장소는 지속되는 실행 상태가 아니며, 보존할 출력은 `RUN_DIR`로 복사합니다.
 
 Hermes Gateway가 멈춰도 이 파일들은 남습니다. 실행 중인 보조 에이전트나 모델 호출은 Gateway 재시작 뒤에 살아남지 않습니다. 중단 전에 노트를 저장하지 못했다면 그 작업은 다시 실행해야 할 수 있습니다.
 
@@ -86,11 +93,22 @@ hermes-deep-research/
 <run-dir>/
 ├── state.json
 ├── sources.json
+├── report.md와 보고서 변형 파일
 ├── notes/
-└── report.md
+├── lanes/<wave>/<lane-id>/result.md
+└── tmp/
+    ├── workspace/
+    ├── raw-pages/
+    ├── raw-data/
+    ├── downloads/
+    ├── extracts/
+    ├── scratch/
+    └── lanes/<wave>/<lane-id>/
 ```
 
-전체 동작 규칙은 [SKILL.md](SKILL.md), 출처 확인 방법은 [출처 검토 안내](references/source-review.md), cron 사용 방법은 [무인 조사 안내](references/unattended-research.md)를 참고하세요.
+임시 파일 정리는 항상 별도 사용자 승인이 필요합니다. 종료 상태의 실행에서 `python3 scripts/research_state.py cleanup "$RUN_DIR"`은 폐기 대상 파일 수와 바이트만 보여 줍니다. 명시적 승인을 받은 뒤 `--apply`를 붙여야 기록된 `tmp/` 내용만 지웁니다. `researching` 또는 `synthesizing` 상태에서는 거부하며 상태, 출처, 보고서, 노트, lane 결과를 건드리지 않습니다. Hermes는 이 명령을 자동 실행하지 않습니다.
+
+설치된 스킬 디렉터리는 읽기 전용 실행 지침과 도우미를 담으며 조사 아티팩트를 저장하지 않습니다. 전체 동작 규칙은 [SKILL.md](SKILL.md), 출처 확인 방법은 [출처 검토 안내](references/source-review.md), cron 사용 방법은 [무인 조사 안내](references/unattended-research.md)를 참고하세요.
 
 ## 선택 기능
 
@@ -98,13 +116,13 @@ hermes-deep-research/
 
 [Bookforge](https://github.com/gongnyang/bookforge)는 선택 기능입니다. 사용자가 문서나 PDF를 명시적으로 요청하고, Markdown 보고서가 문서 제작에 준비됐는지 확인한 뒤에만 사용합니다. [문서화 안내](references/report-documentation.md)에 따라 파일이 중간에 바뀌지 않았는지도 SHA-256으로 확인합니다.
 
-Bookforge를 분리해 두면 조사와 페이지를 구성해 PDF로 만드는 일을 섞지 않아도 됩니다. 또 다른 저장소의 유지보수 상태에 의존하지 않고도 기본 스킬을 쓸 수 있습니다. 사용하기 전에는 현재 안내와 호환성을 확인해야 합니다. 보고서를 Bookforge에 넘기기 직전에 안내의 `verify` 명령이 반드시 성공해야 합니다. 자동으로 설치되지 않습니다. 사용할 수 없다면 검증된 Markdown 보고서를 제공하고 PDF를 만들었다고 말하지 않습니다.
+Bookforge를 분리해 두면 조사와 페이지를 구성해 PDF로 만드는 일을 섞지 않아도 됩니다. 또 다른 저장소의 유지보수 상태에 의존하지 않고도 기본 스킬을 쓸 수 있습니다. 사용하기 전에는 현재 안내와 호환성을 확인해야 합니다. 다운로드한 입력, 스캐폴딩, 렌더링 작업은 `RUN_DIR/tmp/` 아래에 두고 최종 PDF는 영속 파일 `RUN_DIR/report.pdf`로 복사합니다. 보고서를 Bookforge에 넘기기 직전에 안내의 `verify` 명령이 반드시 성공해야 합니다. 자동으로 설치되지 않습니다. 사용할 수 없다면 검증된 Markdown 보고서를 제공하고 PDF를 만들었다고 말하지 않습니다.
 
 ### 한국어 보고서 문장 다듬기
 
 [Humanize Korean](https://github.com/epoko77-ai/im-not-ai)은 한국어 독자용 보고서의 문장을 선택적으로 다듬는 도구입니다. 이 스킬의 설치나 실행에 필요하지 않으며 자동으로 설치되지도 않습니다.
 
-편집 결과는 승인된 편집 전 보고서와 반드시 비교해야 합니다. 사실, 의미, 불확실성, 한계, 숫자, 날짜, 이름, 인용, 링크, 구조가 바뀌었다면 수정하거나 거부합니다. 결과를 검증할 수 없다면 검증된 편집 전 보고서를 사용합니다.
+임시 작업공간은 `RUN_DIR/tmp/workspace`에 두고 영속 보고서 변형 파일은 실행 루트에 둡니다. 도구가 관리하는 임시 저장소를 강제로 사용한다면 검토 전에 필요한 후보 파일을 `RUN_DIR`로 복사합니다. 편집 결과는 승인된 편집 전 보고서와 반드시 비교해야 합니다. 사실, 의미, 불확실성, 한계, 숫자, 날짜, 이름, 인용, 링크, 구조가 바뀌었다면 수정하거나 거부합니다. 결과를 검증할 수 없다면 검증된 편집 전 보고서를 사용합니다.
 
 ## 설치
 
@@ -125,7 +143,7 @@ git clone https://github.com/Gyu-bot/hermes-deep-research.git \
   ~/.hermes/skills/research/hermes-deep-research
 ```
 
-설치한 뒤 `SKILL.md`를 확인하세요. 실제 조사 실행 파일은 설치된 스킬 디렉터리 밖에 저장합니다.
+설치한 뒤 `SKILL.md`를 확인하세요. 조사 실행은 `$HERMES_HOME/research/hermes-deep-research` 아래에만 저장하며, 환경 변수가 없으면 `~/.hermes/research/hermes-deep-research`를 사용합니다. 설치된 스킬 디렉터리에는 조사 아티팩트를 저장하지 않습니다.
 
 ### 설치 에이전트 체크리스트
 
@@ -134,14 +152,15 @@ git clone https://github.com/Gyu-bot/hermes-deep-research.git \
 - 보조 조사 에이전트, 웹·브라우저, 파일, 터미널을 위한 Hermes 표준 기능이 있는지 확인합니다. 무인 조사를 요청했을 때만 Hermes cron도 확인합니다.
 - 요청 결과물에 필요할 때만 Bookforge나 Humanize Korean을 설치합니다. 먼저 현재 안내와 호환성을 확인합니다.
 - 관련 없는 도구를 설치하거나 자격 증명, 공급자, 다른 설정을 바꾸지 않습니다.
-- 아래의 소스 테스트와 임시 `init` → `validate` → `status` 실행 검사를 합니다.
+- 아래의 소스 테스트와 임시 `create` → `validate` → `status` 실행 검사를 합니다. 기존 `init` 명령의 호환성도 유지합니다.
 
 설치 에이전트에게 전달할 프롬프트:
 
 ```text
 먼저 이 저장소와 SKILL.md를 확인하세요. Hermes Deep Research 기본 스킬만
 설치하고 Hermes 표준 도구를 확인하세요. 포함된 표준 라이브러리 테스트와 임시
-init/validate/status 실행 검사를 하세요. 자격 증명을 바꾸거나 관련 없는
+create/validate/status 실행 검사를 하세요. 격리된 레이아웃을 확인하고 기존
+init 명령의 호환성을 유지하세요. 자격 증명을 바꾸거나 관련 없는
 도구를 설치하지 마세요. 요청한 결과물에 필요할 때만 선택 기능을 설치하고,
 먼저 해당 프로젝트의 최신 안내와 호환성을 확인하세요.
 ```
@@ -164,6 +183,8 @@ Markdown 보고서면 충분하고 PDF는 만들지 마.
 ```
 
 Hermes는 어느 도시와 시기를 다룰지, 결과를 어디에 쓸지, 무엇을 꼭 포함할지 물을 수 있습니다. 질문은 세 개를 넘지 않으며, 요청에 답이 이미 들어 있다면 묻지 않습니다.
+
+모든 실행에서 Hermes는 파일을 만드는 조사 작업보다 먼저 `research_state.py create <slug>`를 호출하고, 출력된 절대 경로를 `RUN_DIR`로 사용합니다. 메인·lane·브라우저·다운로드·추출·문서 출력은 모두 이 경계 안에 둡니다.
 
 다른 모드와 결과물 예시:
 
@@ -198,15 +219,15 @@ Hermes cron으로 이 조사를 무인 deep 모드로 실행해 줘. 각 단계�
 python3 -m unittest discover -s tests -v
 python3 -m py_compile scripts/*.py tests/*.py
 
-smoke_root="$(mktemp -d)"
-trap 'rm -rf "$smoke_root"' EXIT
-python3 scripts/research_state.py init "$smoke_root/run" \
-  --query "Smoke-test question" --mode quick --axis "Evidence"
-python3 scripts/research_state.py validate "$smoke_root/run"
-python3 scripts/research_state.py status "$smoke_root/run"
+test_home="$(mktemp -d)"
+trap 'rm -rf "$test_home"' EXIT
+RUN_DIR="$(HERMES_HOME="$test_home" python3 scripts/research_state.py create \
+  "smoke-test" --query "Smoke-test question" --mode quick --axis "Evidence")"
+python3 scripts/research_state.py validate "$RUN_DIR"
+python3 scripts/research_state.py status "$RUN_DIR"
 ```
 
-`research_state.py`는 간단한 실행 상태를 만들고 검사합니다. 메인 에이전트가 문서나 PDF를 만들 준비가 됐다고 판단하면, `document_gate.py`가 승인된 Markdown 파일이 바뀌지 않았는지 SHA-256으로 기록하고 확인합니다. 보고서가 읽기 좋은지 직접 판단하는 도구는 아닙니다.
+위 임시 디렉터리는 테스트 전용이며 실제 조사 실행 위치로 허용되지 않습니다. `research_state.py create`는 타임스탬프가 붙은 고유한 실행을 안전하게 만들고 절대 경로를 출력합니다. `init`, `status`, `validate`는 기존 호환성을 유지합니다. `cleanup`은 기본적으로 dry-run이며, 종료 상태와 `--apply`가 모두 있어야 폐기 파일을 삭제합니다. 메인 에이전트가 문서나 PDF를 만들 준비가 됐다고 판단하면, `document_gate.py`가 승인된 Markdown 파일이 바뀌지 않았는지 SHA-256으로 기록하고 확인합니다. 보고서가 읽기 좋은지 직접 판단하는 도구는 아닙니다.
 
 ## 한계와 안전 수칙
 
@@ -214,6 +235,8 @@ python3 scripts/research_state.py status "$smoke_root/run"
 - 웹 콘텐츠는 지시가 아니라 신뢰할 수 없는 데이터로 취급합니다. 중요하거나 논쟁적인 주장과 직접 인용은 가능하면 원문에서 확인합니다.
 - 중요한 빈틈이 남으면 실행을 `partial`로 마칠 수 있습니다. 보고서에 남은 빈틈을 밝혀야 합니다.
 - 저장 파일은 Gateway가 멈춰도 남습니다. 실행 중인 보조 작업과 모델 호출은 남지 않으며, 저장된 cron 일정도 Gateway가 내려가 있는 동안에는 일하지 않습니다.
+- 완료 및 전달 전에 Hermes는 지속되는 모든 출력이 `RUN_DIR` 안에 있는지 감사합니다. 밖에서 발견한 파일은 보고하며 조용히 삭제하지 않습니다.
+- 보존과 정리는 사용자가 결정합니다. Hermes는 사용자 파일이나 이전 실행을 자동으로 삭제하지 않습니다.
 - 일부 페이지는 바뀌었거나, 차단되었거나, 유료이거나, 사라졌을 수 있습니다. 이로 인한 한계를 기록해야 합니다.
 - 이 스킬은 개인 조사를 돕습니다. 규제나 감사를 위한 증거 시스템이 아닙니다. 의료·법률·금융·안전 같은 고위험 결론에는 최신 권위 자료와 해당 분야 전문가의 적절한 판단이 필요합니다.
 
