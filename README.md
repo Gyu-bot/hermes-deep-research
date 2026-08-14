@@ -152,7 +152,7 @@ Review `SKILL.md` after installation. Research runs belong only under `$HERMES_H
 - Verify standard Hermes support for helper tasks, web and browser access, files, and terminal commands. Verify Hermes cron only if unattended research was requested.
 - Install Bookforge or Humanize Korean only when the requested output needs it, after checking current upstream instructions and compatibility.
 - Do not install unrelated tools or change credentials, providers, or other settings.
-- Run the source tests and the temporary `create` → `validate` → `status` check below. The legacy `init` command remains compatible.
+- Run the source tests and the temporary `create` → `validate` → `status` check below. The legacy `init` command remains compatible only inside the canonical research base.
 
 Copyable prompt:
 
@@ -160,7 +160,7 @@ Copyable prompt:
 Inspect this repository and SKILL.md first. Install only the Hermes Deep Research
 base skill and verify its standard Hermes tools. Run the included standard-library
 tests and a temporary create/validate/status smoke test. Confirm the confined layout
-and keep the legacy init command compatible. Do not change credentials or
+and keep the legacy init command confined to the canonical research base. Do not change credentials or
 install unrelated tools. Install optional integrations only when my requested output
 needs them, and check their current upstream instructions and compatibility first.
 ```
@@ -226,7 +226,7 @@ python3 scripts/research_state.py validate "$RUN_DIR"
 python3 scripts/research_state.py status "$RUN_DIR"
 ```
 
-The temporary directory above is test-only, not a permitted research-run location. `research_state.py create` safely creates a unique timestamped run and prints its absolute path; `init`, `status`, and `validate` remain compatible. `cleanup` is dry-run by default and requires both a terminal status and `--apply` to delete disposable files. After the main agent decides that the report is ready for a document or PDF, `document_gate.py` uses SHA-256 to record and confirm that the approved Markdown file has not changed. It does not judge whether the report is readable.
+The temporary directory above is test-only, not a permitted research-run location. `research_state.py create` safely creates a unique timestamped run and prints its absolute path. `init` remains available only for direct children of the canonical research base; `status` and `validate` remain compatible with legacy run locations. `cleanup` is dry-run by default and requires both a terminal status and `--apply` to delete disposable files. After the main agent decides that the report is ready for a document or PDF, `document_gate.py` uses SHA-256 to record and confirm that the approved Markdown file has not changed. It does not judge whether the report is readable.
 
 ## Limits and safety
 

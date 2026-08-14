@@ -152,7 +152,7 @@ git clone https://github.com/Gyu-bot/hermes-deep-research.git \
 - 보조 조사 에이전트, 웹·브라우저, 파일, 터미널을 위한 Hermes 표준 기능이 있는지 확인합니다. 무인 조사를 요청했을 때만 Hermes cron도 확인합니다.
 - 요청 결과물에 필요할 때만 Bookforge나 Humanize Korean을 설치합니다. 먼저 현재 안내와 호환성을 확인합니다.
 - 관련 없는 도구를 설치하거나 자격 증명, 공급자, 다른 설정을 바꾸지 않습니다.
-- 아래의 소스 테스트와 임시 `create` → `validate` → `status` 실행 검사를 합니다. 기존 `init` 명령의 호환성도 유지합니다.
+- 아래의 소스 테스트와 임시 `create` → `validate` → `status` 실행 검사를 합니다. 기존 `init` 명령은 표준 리서치 루트 내부에서만 호환성을 유지합니다.
 
 설치 에이전트에게 전달할 프롬프트:
 
@@ -160,7 +160,7 @@ git clone https://github.com/Gyu-bot/hermes-deep-research.git \
 먼저 이 저장소와 SKILL.md를 확인하세요. Hermes Deep Research 기본 스킬만
 설치하고 Hermes 표준 도구를 확인하세요. 포함된 표준 라이브러리 테스트와 임시
 create/validate/status 실행 검사를 하세요. 격리된 레이아웃을 확인하고 기존
-init 명령의 호환성을 유지하세요. 자격 증명을 바꾸거나 관련 없는
+init 명령도 표준 리서치 루트 내부로 제한하세요. 자격 증명을 바꾸거나 관련 없는
 도구를 설치하지 마세요. 요청한 결과물에 필요할 때만 선택 기능을 설치하고,
 먼저 해당 프로젝트의 최신 안내와 호환성을 확인하세요.
 ```
@@ -227,7 +227,7 @@ python3 scripts/research_state.py validate "$RUN_DIR"
 python3 scripts/research_state.py status "$RUN_DIR"
 ```
 
-위 임시 디렉터리는 테스트 전용이며 실제 조사 실행 위치로 허용되지 않습니다. `research_state.py create`는 타임스탬프가 붙은 고유한 실행을 안전하게 만들고 절대 경로를 출력합니다. `init`, `status`, `validate`는 기존 호환성을 유지합니다. `cleanup`은 기본적으로 dry-run이며, 종료 상태와 `--apply`가 모두 있어야 폐기 파일을 삭제합니다. 메인 에이전트가 문서나 PDF를 만들 준비가 됐다고 판단하면, `document_gate.py`가 승인된 Markdown 파일이 바뀌지 않았는지 SHA-256으로 기록하고 확인합니다. 보고서가 읽기 좋은지 직접 판단하는 도구는 아닙니다.
+위 임시 디렉터리는 테스트 전용이며 실제 조사 실행 위치로 허용되지 않습니다. `research_state.py create`는 타임스탬프가 붙은 고유한 실행을 안전하게 만들고 절대 경로를 출력합니다. `init`은 표준 리서치 루트의 직접 하위 경로에서만 새 실행을 만들 수 있고, `status`와 `validate`는 기존 실행 위치와의 호환성을 유지합니다. `cleanup`은 기본적으로 dry-run이며, 종료 상태와 `--apply`가 모두 있어야 폐기 파일을 삭제합니다. 메인 에이전트가 문서나 PDF를 만들 준비가 됐다고 판단하면, `document_gate.py`가 승인된 Markdown 파일이 바뀌지 않았는지 SHA-256으로 기록하고 확인합니다. 보고서가 읽기 좋은지 직접 판단하는 도구는 아닙니다.
 
 ## 한계와 안전 수칙
 

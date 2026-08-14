@@ -151,6 +151,9 @@ def create_run(slug: str, query: str, mode: str, axes: list[str]) -> tuple[Path,
 def init_run(run_dir: Path, query: str, mode: str, axes: list[str]) -> dict[str, Any]:
     run_dir = run_dir.expanduser().resolve()
     validate_init_args(query, mode)
+    base = research_base()
+    if run_dir.parent != base:
+        raise ValidationError(f"new runs must be direct children of {base}")
     if (run_dir / "state.json").exists():
         raise ValidationError(f"run already exists: {run_dir}")
 
@@ -203,7 +206,9 @@ def load_json(path: Path) -> Any:
         raise ValidationError(f"invalid JSON in {path.name}: {error}") from error
 
 
-def validate_relative_path(run_dir: Path, value: Any, field: str) -> Path:
+def validate_relative_path(
+    run_dir: Path, value: Any, field: str, *, durable: bool = False
+) -> Path:
     if not isinstance(value, str) or not value.strip():
         raise ValidationError(f"{field} must be a non-empty relative path")
     path = Path(value)
@@ -211,9 +216,11 @@ def validate_relative_path(run_dir: Path, value: Any, field: str) -> Path:
         raise ValidationError(f"{field} must be relative to the run directory")
     path = (run_dir / path).resolve()
     try:
-        path.relative_to(run_dir)
+        relative = path.relative_to(run_dir)
     except ValueError as error:
         raise ValidationError(f"{field} escapes the run directory") from error
+    if durable and relative.parts and relative.parts[0] == TMP_PATH:
+        raise ValidationError(f"{field} must not be inside disposable {TMP_PATH}/")
     return path
 
 
@@ -279,7 +286,12 @@ def validate_run(run_dir: Path) -> dict[str, Any]:
         for field in ("queries_used", "original_fetches_used"):
             if not is_int(axis.get(field)) or axis[field] < 0:
                 raise ValidationError(f"axes[{index}].{field} must be a non-negative integer")
-        validate_relative_path(run_dir, axis["note_path"], f"axes[{index}].note_path")
+        validate_relative_path(
+            run_dir,
+            axis["note_path"],
+            f"axes[{index}].note_path",
+            durable=True,
+        )
     if not all(isinstance(item, str) for item in state["next_actions"] + state["limitations"]):
         raise ValidationError("next_actions and limitations must contain strings")
     if not (run_dir / "notes").is_dir():
@@ -301,7 +313,9 @@ def validate_run(run_dir: Path) -> dict[str, Any]:
             if child.is_symlink() or not child.is_dir():
                 raise ValidationError(f"missing temporary directory: {directory}")
 
-    report = validate_relative_path(run_dir, state["report_path"], "report_path")
+    report = validate_relative_path(
+        run_dir, state["report_path"], "report_path", durable=True
+    )
     if not report.is_file():
         raise ValidationError("report file is missing")
     if state["status"] in {"completed", "partial"} and not report.read_text(

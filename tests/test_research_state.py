@@ -20,6 +20,15 @@ from scripts.research_state import (
 
 
 class ResearchStateTest(unittest.TestCase):
+    def init_test_run(self, temporary, mode="deep", axes=None):
+        hermes_home = Path(temporary) / "hermes-home"
+        with patch.dict(os.environ, {"HERMES_HOME": str(hermes_home)}):
+            run_dir = research_state.research_base() / "run"
+            state = init_run(
+                run_dir, "A useful question", mode, [] if axes is None else axes
+            )
+        return run_dir, state
+
     def test_mode_defaults_create_valid_runs(self):
         expected = {
             "quick": (1800, 1, 8, 8),
@@ -28,8 +37,7 @@ class ResearchStateTest(unittest.TestCase):
         }
         for mode, defaults in expected.items():
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
-                run_dir = Path(temporary) / "run"
-                state = init_run(run_dir, "A useful question", mode, ["Evidence"])
+                run_dir, state = self.init_test_run(temporary, mode, ["Evidence"])
                 planning = state["planning"]
 
                 self.assertEqual(
@@ -125,21 +133,47 @@ class ResearchStateTest(unittest.TestCase):
                     create_run(slug, "Question", "quick", [])
             self.assertFalse(base.exists())
 
+    def test_init_run_rejects_creation_outside_research_base(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.dict(
+            os.environ, {"HERMES_HOME": str(Path(temporary) / "hermes-home")}
+        ):
+            outside = Path(temporary) / "outside-run"
+            with self.assertRaises(ValidationError):
+                init_run(outside, "A useful question", "deep", [])
+            self.assertFalse(outside.exists())
+
+    def test_validation_rejects_durable_paths_inside_tmp(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            run_dir, state = self.init_test_run(temporary, axes=["Evidence"])
+
+            disposable_report = run_dir / "tmp/workspace/report.md"
+            disposable_report.write_text("not durable")
+            state["report_path"] = "tmp/workspace/report.md"
+            (run_dir / "state.json").write_text(json.dumps(state))
+            with self.assertRaises(ValidationError):
+                validate_run(run_dir)
+
+            state["report_path"] = "report.md"
+            state["axes"][0]["note_path"] = "tmp/scratch/note.md"
+            (run_dir / "state.json").write_text(json.dumps(state))
+            with self.assertRaises(ValidationError):
+                validate_run(run_dir)
+
     def test_validation_accepts_legacy_run_without_new_layout(self):
         with tempfile.TemporaryDirectory() as temporary:
-            run_dir = Path(temporary) / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
             state.pop("tmp_path")
             (run_dir / "state.json").write_text(json.dumps(state))
             shutil.rmtree(run_dir / "tmp")
             (run_dir / "lanes").rmdir()
+            legacy_run = Path(temporary) / "legacy-run"
+            run_dir.rename(legacy_run)
 
-            self.assertEqual(validate_run(run_dir)["query"], "A useful question")
+            self.assertEqual(validate_run(legacy_run)["query"], "A useful question")
 
     def test_cleanup_is_dry_run_by_default_and_preserves_durable_files(self):
         with tempfile.TemporaryDirectory() as temporary:
-            run_dir = Path(temporary) / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
             state["status"] = "failed"
             (run_dir / "state.json").write_text(json.dumps(state))
 
@@ -194,8 +228,7 @@ class ResearchStateTest(unittest.TestCase):
 
     def test_cleanup_refuses_active_or_unsafe_runs(self):
         with tempfile.TemporaryDirectory() as temporary:
-            run_dir = Path(temporary) / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
             for status in ("researching", "synthesizing"):
                 state["status"] = status
                 (run_dir / "state.json").write_text(json.dumps(state))
@@ -222,8 +255,7 @@ class ResearchStateTest(unittest.TestCase):
     def test_cleanup_refuses_tmp_symlink_swap_after_snapshot(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            run_dir = root / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
             state["status"] = "failed"
             (run_dir / "state.json").write_text(json.dumps(state))
             (run_dir / "tmp/workspace/disposable").write_text("x")
@@ -251,8 +283,7 @@ class ResearchStateTest(unittest.TestCase):
     def test_cleanup_refuses_real_child_directory_replacement(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            run_dir = root / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
             state["status"] = "failed"
             (run_dir / "state.json").write_text(json.dumps(state))
             (run_dir / "tmp/workspace/disposable").write_text("x")
@@ -280,8 +311,7 @@ class ResearchStateTest(unittest.TestCase):
     def test_cleanup_refuses_real_tmp_replacement_before_descriptor_binding(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            run_dir = root / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
             state["status"] = "failed"
             (run_dir / "state.json").write_text(json.dumps(state))
             detached_tmp = root / "detached-tmp"
@@ -311,8 +341,7 @@ class ResearchStateTest(unittest.TestCase):
     def test_cleanup_refuses_real_run_replacement_before_descriptor_binding(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            run_dir = root / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
             state["status"] = "failed"
             (run_dir / "state.json").write_text(json.dumps(state))
             detached_run = root / "detached-run"
@@ -352,8 +381,7 @@ class ResearchStateTest(unittest.TestCase):
         )
         for field, value in invalid_values:
             with self.subTest(field=field), tempfile.TemporaryDirectory() as temporary:
-                run_dir = Path(temporary) / "run"
-                state = init_run(run_dir, "A useful question", "deep", ["Evidence"])
+                run_dir, state = self.init_test_run(temporary, axes=["Evidence"])
                 state["planning"][field] = value
                 (run_dir / "state.json").write_text(json.dumps(state))
 
@@ -370,8 +398,7 @@ class ResearchStateTest(unittest.TestCase):
         )
         for field, value in invalid_values:
             with self.subTest(field=field), tempfile.TemporaryDirectory() as temporary:
-                run_dir = Path(temporary) / "run"
-                state = init_run(run_dir, "A useful question", "deep", ["Evidence"])
+                run_dir, state = self.init_test_run(temporary, axes=["Evidence"])
                 state["axes"][0][field] = value
                 (run_dir / "state.json").write_text(json.dumps(state))
 
@@ -380,8 +407,7 @@ class ResearchStateTest(unittest.TestCase):
 
     def test_completed_or_partial_requires_report(self):
         with tempfile.TemporaryDirectory() as temporary:
-            run_dir = Path(temporary) / "run"
-            state = init_run(run_dir, "A useful question", "deep", [])
+            run_dir, state = self.init_test_run(temporary)
 
             for status in ("completed", "partial"):
                 state["status"] = status

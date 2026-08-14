@@ -168,4 +168,4 @@ Persistent Goals may support iterative work in the same session when the user in
 - Read [references/report-documentation.md](references/report-documentation.md) only for an explicitly requested final report document or PDF.
 - Give children [templates/research-note.md](templates/research-note.md) for coverage-lane notes.
 - Use [templates/report.md](templates/report.md) when synthesizing the final report.
-- Use [scripts/research_state.py](scripts/research_state.py) for safe unique run creation and simple local setup, inspection, and validation. Its existing `init`, `status`, and `validate` commands remain available for compatibility.
+- Use [scripts/research_state.py](scripts/research_state.py) for safe unique run creation and simple local setup, inspection, and validation. Its existing `init`, `status`, and `validate` commands remain available for compatibility, but `init` may create a run only as a direct child of the canonical research base.
